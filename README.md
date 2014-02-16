@@ -1,7 +1,7 @@
 TMDB River Plugin for ElasticSearch 
 ==================================
 
-The TMDB river plugin pulls data from [TMDB](https://www.themoviedb.org) to [elasticsearch](http://www.elasticsearch.org).
+The TMDB river plugin pulls data from [TheMovieDB](https://www.themoviedb.org) to [elasticsearch](http://www.elasticsearch.org).
 
 
 Getting Started
