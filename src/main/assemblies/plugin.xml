@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<assembly>
+    <id>plugin</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>com.conlini:elasticsearch-tmdb-river</include>
+                <include>org.springframework:spring-web</include>
+                <include>org.springframework:spring-beans</include>
+                <include>org.springframework:spring-context</include>
+                <include>org.springframework:spring-expression</include>
+                <include>org.springframework:spring-asm</include>
+                <include>org.springframework:spring-core</include>
+				<include>commons-logging:commons-logging</include>  
+				<include>org.codehaus.jackson:jackson-mapper-asl</include> 
+				<include>org.codehaus.jackson:jackson-core-asl</include>             
+                <!-- <include>org.apache.solr:solr-solrj</include>
+                <include>org.apache.httpcomponents:*</include>
+                <include>commons-logging:commons-logging</include>
+                <include>com.fasterxml.jackson.core:*</include>
+                <include>org.slf4j:*</include> -->
+            </includes>
+        </dependencySet>
+    </dependencySets>
+</assembly>
