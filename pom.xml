@@ -13,6 +13,27 @@
 		<url>http://github.com/conlini/elasticsearch-tmdb-river</url>
 	</scm>
 
+  <developers>
+    <developer>
+      <id>conlini</id>
+      <name>Aditya Bhasin</name>
+      <email>conlini@gmail.com</email>
+      <timezone>+5:30</timezone>
+      <roles>
+        <role>Developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>SujanDeshpande</id>
+      <name>Sujan Deshpande</name>
+      <email>sujan.deshpande@gmail.com</email>
+      <timezone>+5:30</timezone>
+      <roles>
+        <role>Developer</role>
+      </roles>
+    </developer>
+  </developers>
+
 	<repositories>
 		<repository>
 			<id>sonatype</id>
