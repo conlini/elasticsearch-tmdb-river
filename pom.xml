@@ -19,11 +19,6 @@
 			<name>Sonatype Groups</name>
 			<url>https://oss.sonatype.org/content/groups/public/</url>
 		</repository>
-		<repository>
-			<id>bintray-javanna</id>
-			<name>javanna-elasticsearch-tools-elasticsearch-river-solr</name>
-			<url>https://api.bintray.com/maven/javanna/elasticsearch-tools/elasticsearch-river-solr/release</url>
-		</repository>
 	</repositories>
 
 	<distributionManagement>
