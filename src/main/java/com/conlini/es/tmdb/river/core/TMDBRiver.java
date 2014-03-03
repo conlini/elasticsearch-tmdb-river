@@ -8,8 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -39,6 +42,8 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 	private final String basePath = "http://api.themoviedb.org/3";
 
 	private Integer maxPages;
+
+	private boolean lastPageFetched = false;
 
 	private static enum DISCOVERY_TYPE {
 		MOVIE("/discover/movie", "movie", "contents", Movie.class), TV(
@@ -127,16 +132,26 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 					response.getTotalResults(), response.getTotalPages()));
 			ExecutorService service = Executors.newCachedThreadPool();
 			ContentFetcher contentFetcher = new ContentFetcher(template);
-			service.execute(contentFetcher);
+			Future<Object> future = service.submit(contentFetcher);
 			if (null == maxPages) {
 				maxPages = response.getTotalPages();
 			}
 			PagesFetcher pagesFetcher = new PagesFetcher(maxPages, fetchUrl,
 					template);
-			service.execute(pagesFetcher);
+			service.submit(pagesFetcher);
+			try {
+				Object complete = future.get();
+			} catch (InterruptedException e) {
+				logger.error("Error", e);
+			} catch (ExecutionException e) {
+				logger.error("Error", e);
+			}
 		} else {
 			logger.error("No API Key found. Nothing being pulled");
 		}
+		client.admin().indices().prepareDeleteMapping("_river")
+				.setType(riverName.name()).execute();
+
 	}
 
 	private Map<String, ?> getVariableVals(String pageNum) {
@@ -170,7 +185,7 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 		this.client = client;
 	}
 
-	private class PagesFetcher implements Runnable {
+	private class PagesFetcher implements Callable<Object> {
 
 		private Integer totalPages;
 
@@ -186,7 +201,8 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 			this.template = template;
 		}
 
-		public void run() {
+		@Override
+		public Object call() throws Exception {
 			for (int i = 1; i < totalPages; i++) {
 				logger.info("Fetching page no - " + i);
 				DiscoverResponse response = template.getForObject(fetchUrl,
@@ -202,11 +218,12 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 					logger.error("Error", e);
 				}
 			}
-
+			lastPageFetched = true;
+			return new Object();
 		}
 	}
 
-	private class ContentFetcher implements Runnable {
+	private class ContentFetcher implements Callable<Object> {
 
 		private boolean running = true;
 
@@ -218,19 +235,6 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 		public ContentFetcher(RestTemplate template) {
 			super();
 			this.template = template;
-		}
-
-		@Override
-		public void run() {
-			while (running) {
-				try {
-					List<DiscoverResult> results = queues.take();
-					fetchContents(results);
-				} catch (InterruptedException e) {
-					logger.error("Failed to take next from queue", e);
-					running = false;
-				}
-			}
 		}
 
 		@SuppressWarnings("unchecked")
@@ -255,6 +259,27 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 				}
 			}
 			requestBuilder.execute().actionGet();
+		}
+
+		@Override
+		public Object call() throws Exception {
+			while (running) {
+				try {
+					List<DiscoverResult> results = queues.take();
+					fetchContents(results);
+					if (lastPageFetched && queues.isEmpty()) {
+						// a very dirty way to end the fetch of data. We do this
+						// as we need to now unregister the river for future
+						// auto fetches.
+						// FIXME need a cleaner sync between threads to do this
+						running = false;
+					}
+				} catch (InterruptedException e) {
+					logger.error("Failed to take next from queue", e);
+					running = false;
+				}
+			}
+			return new Object();
 		}
 	}
 }
