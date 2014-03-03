@@ -203,7 +203,7 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 
 		@Override
 		public Object call() throws Exception {
-			for (int i = 1; i < totalPages; i++) {
+			for (int i = 1; i <= totalPages; i++) {
 				logger.info("Fetching page no - " + i);
 				DiscoverResponse response = template.getForObject(fetchUrl,
 						DiscoverResponse.class, getVariableVals(i + ""));
