@@ -23,7 +23,8 @@ curl -XPUT localhost:9200/_river/tmdb/_meta -d '
     "type" : "tmdb",
     "api_key" : "<api_key>",
     "discovery_type" : "<tv/movie>",
-    "max_pages" : 50 
+    "max_pages" : 50 ,
+    "content_mapping" : "properties" : {"title" : {"index" : "not_analyzed" , "type" : "string"}}
 }'
 ```
 
@@ -36,6 +37,9 @@ All documents are stored under a single type("contents").
 The documents are indexed using the [bulk api](http://www.elasticsearch.org/guide/reference/java-api/bulk.html) at 20 documents per request.
 
 The river goes thru all pages of the response and indexes all documents. This can be controlled using the "max_pages" parameter
+
+A user defined mapping can be provided for the metadata, using the "content_mapping" field. The structure is mapped as follows
+{"content" : {"properties" : {"title" : {"index" : "not_analyzed" , "type" : "string"}}}}
 
 
 

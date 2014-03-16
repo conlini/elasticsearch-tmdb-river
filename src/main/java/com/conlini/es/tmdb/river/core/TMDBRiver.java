@@ -45,6 +45,8 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 
 	private boolean lastPageFetched = false;
 
+	private Map<String, Object> mapping;
+
 	private static enum DISCOVERY_TYPE {
 		MOVIE("/discover/movie", "movie", "contents", Movie.class), TV(
 				"/discover/tv", "tv", "contents", TV.class);
@@ -105,12 +107,21 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 		if (settings.settings().containsKey("max_pages")) {
 			maxPages = (Integer) settings.settings().get("max_pages");
 		}
+
+		if (settings.settings().containsKey("content_mapping")) {
+			logger.info("Found user defined mapping");
+			Map<String, Object> map = (Map<String, Object>) settings.settings()
+					.get("content_mapping");
+			this.mapping = new HashMap<String, Object>();
+			this.mapping.put("content", map);
+		}
 		// print all the settings that have been extracted. Assert that we
 		// Received the api key. Don;t print it out for security reasons.
 		logger.info(String.format("Recieved apiKey -  %s",
 				(null != apiKey && !apiKey.equals(""))));
 		logger.info(String.format("Discovery Type = %s", discoveryType));
 		logger.info("String max_pages - " + maxPages);
+		logger.info("mapping", mapping);
 	}
 
 	public RiverName riverName() {
@@ -119,7 +130,17 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 
 	public void start() {
 		logger.info(String.format("Starting %s river", riverName));
+		// check if the apiKey has been signalled. There is no point of
+		// proceeding if that is not there
 		if (null != apiKey && !apiKey.equals("")) {
+			// intitalize the index
+			client.admin().indices().prepareCreate("tmdb").get();
+			// if a user defined mapping has been sent, update the mapping
+			if (this.mapping != null) {
+				client.admin().indices().preparePutMapping("tmdb")
+						.setType("content").setSource(mapping).execute()
+						.actionGet();
+			}
 			RestTemplate template = initTemplate();
 			String fetchUrl = basePath + discoveryType.getPath()
 					+ "?api_key={api_key}&page={page_no}";
@@ -149,6 +170,7 @@ public class TMDBRiver extends AbstractRiverComponent implements River {
 		} else {
 			logger.error("No API Key found. Nothing being pulled");
 		}
+		// delete the mapping. We are done with the scraper
 		client.admin().indices().prepareDeleteMapping("_river")
 				.setType(riverName.name()).execute();
 
