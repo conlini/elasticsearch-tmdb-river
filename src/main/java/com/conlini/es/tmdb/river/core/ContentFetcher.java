@@ -1,0 +1,105 @@
+package com.conlini.es.tmdb.river.core;
+
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.List;
+
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.springframework.web.client.RestTemplate;
+
+import com.conlini.es.tmdb.river.core.ControlFlowManager.PHASE;
+import com.conlini.es.tmdb.river.core.ControlFlowManager.PHASE_STAGE;
+import com.conlini.es.tmdb.river.core.ControlFlowManager.PhaseStageListener;
+import com.conlini.es.tmdb.river.core.TMDBRiver.DISCOVERY_TYPE;
+import com.conlini.es.tmdb.river.pojo.DiscoverResult;
+import com.conlini.es.tmdb.river.pojo.SourceProvider;
+
+public class ContentFetcher implements Runnable, PhaseStageListener {
+
+	private final String fetchUrl = Constants.basePath
+			+ "/{type}/{id}?api_key={api_key}";
+
+	private DISCOVERY_TYPE discoveryType;
+
+	private RestTemplate template = APIUtil.initTemplate();
+
+	private Client client;
+
+	private ESLogger logger;
+
+	private String apiKey;
+
+	private boolean running = true;
+
+	private ControlFlowManager controlFlowManager;
+
+	private boolean can_stop = false;;
+
+	@SuppressWarnings("unchecked")
+	private void fetchContents(List<DiscoverResult> results) {
+
+		BulkRequestBuilder requestBuilder = client.prepareBulk();
+		logger.info(String.format("Fetching movies - %s", results));
+		for (DiscoverResult result : results) {
+			SourceProvider sourceProvider = template.getForObject(fetchUrl,
+					discoveryType.sourceClass, discoveryType.getContentPath(),
+					result.getId().toString(), apiKey);
+
+			try {
+				requestBuilder.add(client.prepareIndex("tmdb",
+						discoveryType.getEsType(), result.getId().toString())
+						.setSource(sourceProvider.source()));
+			} catch (IOException e) {
+				logger.error("Error", e);
+			} catch (ParseException e) {
+				logger.error("Error", e);
+			}
+		}
+		requestBuilder.execute().actionGet();
+	}
+
+	@Override
+	public void run() {
+		while (running) {
+			try {
+				List<DiscoverResult> results = controlFlowManager
+						.getPageResultQueue().take();
+				fetchContents(results);
+				if (controlFlowManager.getPageResultQueue().isEmpty()
+						&& can_stop) {
+					running = false;
+				}
+
+			} catch (InterruptedException e) {
+				logger.error("Failed to take next from queue", e);
+				running = false;
+			}
+		}
+		controlFlowManager.notifyPhase(PHASE.CONTENT_SCRAPE,
+				PHASE_STAGE.COMPLETE);
+	}
+
+	public ContentFetcher(String riverName, DISCOVERY_TYPE discoveryType,
+			Client client, String apiKey, ControlFlowManager controlFlowManager) {
+		super();
+		this.discoveryType = discoveryType;
+		this.client = client;
+		this.apiKey = apiKey;
+		this.controlFlowManager = controlFlowManager;
+		this.logger = Loggers.getLogger(getClass(), riverName);
+		this.controlFlowManager.registerPhaseStageListener(PHASE.PAGE_SCRAPE,
+				PHASE_STAGE.COMPLETE, this);
+	}
+
+	@Override
+	public void onPhase(PHASE phase, PHASE_STAGE stage) {
+		if (phase.equals(PHASE.PAGE_SCRAPE)
+				&& stage.equals(PHASE_STAGE.COMPLETE)) {
+			this.can_stop = true;
+		}
+	}
+
+}
