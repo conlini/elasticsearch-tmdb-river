@@ -43,7 +43,9 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 
 	private ControlFlowManager controlFlowManager;
 
-	private boolean can_stop = false;;
+	private boolean can_stop = false;
+
+	private Integer bulkAPiThreshold;;
 
 	@SuppressWarnings("unchecked")
 	private void fetchContents(List<DiscoverResult> results,
@@ -101,7 +103,7 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 						.getPageResultQueue().take();
 
 				fetchContents(results, requestBuilder);
-				if (requestBuilder.numberOfActions() > 100000) {
+				if (requestBuilder.numberOfActions() > this.bulkAPiThreshold) {
 					logger.info("Bulk request threshold reached. Indexing data");
 					requestBuilder.get();
 					requestBuilder = client.prepareBulk();
@@ -127,7 +129,8 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 	}
 
 	public ContentFetcher(String riverName, DISCOVERY_TYPE discoveryType,
-			Client client, String apiKey, ControlFlowManager controlFlowManager) {
+			Client client, String apiKey,
+			ControlFlowManager controlFlowManager, Integer bulkAPIThreshold) {
 		super();
 		this.discoveryType = discoveryType;
 		this.client = client;
@@ -136,6 +139,7 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 		this.logger = Loggers.getLogger(getClass(), riverName);
 		this.controlFlowManager.registerPhaseStageListener(PHASE.PAGE_SCRAPE,
 				PHASE_STAGE.COMPLETE, this);
+		this.bulkAPiThreshold = bulkAPIThreshold;
 	}
 
 	@Override

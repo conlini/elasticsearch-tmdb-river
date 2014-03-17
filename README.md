@@ -34,7 +34,8 @@ The index is created when not already existing, otherwise the documents are adde
 
 All documents are stored under a single type("contents"). 
 
-The documents are indexed using the [bulk api](http://www.elasticsearch.org/guide/reference/java-api/bulk.html) at 20 documents per request.
+The documents are indexed using the [bulk api](http://www.elasticsearch.org/guide/reference/java-api/bulk.html). Default is 100K docs. This can be configured
+using the "bulk_api_threshold" parameter
 
 The river goes thru all pages of the response and indexes all documents. This can be controlled using the "max_pages" parameter
 

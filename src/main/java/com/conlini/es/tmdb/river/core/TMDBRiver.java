@@ -36,6 +36,8 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 
 	private Map<String, Object> mapping;
 
+	private Integer bulkAPIThreshold = 100000;
+
 	public static enum DISCOVERY_TYPE {
 		MOVIE("/discover/movie", "movie", "contents", Movie.class), TV(
 				"/discover/tv", "tv", "contents", TV.class), ALL(null, null,
@@ -110,6 +112,10 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 			this.mapping = new HashMap<String, Object>();
 			this.mapping.put("content", map);
 		}
+		if (settings.settings().containsKey("bulk_api_threshold")) {
+			bulkAPIThreshold = (Integer) settings.settings().get(
+					"bulk_api_threshold");
+		}
 		// print all the settings that have been extracted. Assert that we
 		// Received the api key. Don;t print it out for security reasons.
 		logger.info(String.format("Recieved apiKey -  %s",
@@ -117,6 +123,7 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 		logger.info(String.format("Discovery Type = %s", discoveryType));
 		logger.info("String max_pages - " + maxPages);
 		logger.info("mapping", mapping);
+		logger.info("bulk_api_threshold", bulkAPIThreshold);
 	}
 
 	public RiverName riverName() {
@@ -155,8 +162,8 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 						response.getTotalResults(), response.getTotalPages()));
 				maxPages = response.getTotalPages();
 			}
-			controlFlowManager
-					.startContentScrape(apiKey, discoveryType, client);
+			controlFlowManager.startContentScrape(apiKey, discoveryType,
+					client, bulkAPIThreshold);
 			this.controlFlowManager.startPageScrape(apiKey, fetchUrl, maxPages);
 		} else {
 			logger.error("No API Key found. Nothing being pulled");

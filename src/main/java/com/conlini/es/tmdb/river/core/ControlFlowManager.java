@@ -61,9 +61,9 @@ public class ControlFlowManager {
 	}
 
 	public void startContentScrape(String apiKey, DISCOVERY_TYPE discoveryType,
-			Client client) {
+			Client client, Integer bulkAPIThreshold) {
 		ContentFetcher fetcher = new ContentFetcher(riverName, discoveryType,
-				client, apiKey, this);
+				client, apiKey, this, bulkAPIThreshold);
 		executorService.submit(fetcher);
 	}
 
