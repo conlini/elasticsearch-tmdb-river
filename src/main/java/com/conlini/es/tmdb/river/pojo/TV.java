@@ -11,7 +11,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class TV implements SourceProvider {
+public class TV implements SourceProvider, CreditsOwner {
 
 	@JsonProperty("name")
 	private String title;
@@ -42,6 +42,27 @@ public class TV implements SourceProvider {
 
 	@JsonProperty("last_air_date")
 	private String endDate;
+
+	private String seriesName;
+
+	private Credits credit;
+
+	public Credits getCredit() {
+		return credit;
+	}
+
+	@Override
+	public void setCredit(Credits credit) {
+		this.credit = credit;
+	}
+
+	public String getSeriesName() {
+		return seriesName;
+	}
+
+	public void setSeriesName(String seriesName) {
+		this.seriesName = seriesName;
+	}
 
 	public String getTitle() {
 		return title;
@@ -153,6 +174,17 @@ public class TV implements SourceProvider {
 			}
 			builder.endArray();
 
+		}
+		builder.field("series_name", this.originalTitle);
+		if (this.credit != null && this.credit.getCast() != null
+				&& !this.credit.getCast().isEmpty()) {
+			builder.startObject("credits");
+			for (Cast cast : this.credit.getCast()) {
+				builder.field("cast_id", cast.getId());
+				builder.field("character", cast.getCharacter());
+				builder.field("person_name", cast.getName());
+			}
+			builder.endObject();
 		}
 		builder.endObject();
 		return builder;

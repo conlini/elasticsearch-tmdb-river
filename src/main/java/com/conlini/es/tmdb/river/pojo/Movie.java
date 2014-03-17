@@ -11,7 +11,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Movie implements SourceProvider {
+public class Movie implements SourceProvider, CreditsOwner {
 
 	@JsonProperty("adult")
 	private Boolean adult;
@@ -36,6 +36,38 @@ public class Movie implements SourceProvider {
 
 	@JsonProperty("vote_average")
 	private Double rating;
+
+	@JsonProperty("belongs_to_collection.name")
+	private String seriesName;
+
+	private List<String> keywords;
+
+	private Credits credit;
+
+	public Credits getCredit() {
+		return credit;
+	}
+
+	@Override
+	public void setCredit(Credits credit) {
+		this.credit = credit;
+	}
+
+	public List<String> getKeywords() {
+		return keywords;
+	}
+
+	public void setKeywords(List<String> keywords) {
+		this.keywords = keywords;
+	}
+
+	public String getSeriesName() {
+		return seriesName;
+	}
+
+	public void setSeriesName(String seriesName) {
+		this.seriesName = seriesName;
+	}
 
 	public Boolean getAdult() {
 		return adult;
@@ -126,7 +158,23 @@ public class Movie implements SourceProvider {
 			builder.endArray();
 
 		}
+		if (null != seriesName) {
+			builder.field("series_name", seriesName);
+		}
 		builder.endObject();
+		if (this.keywords != null && !this.keywords.isEmpty()) {
+			builder.array("keywords", this.keywords.toArray());
+		}
+		if (this.credit != null && this.credit.getCast() != null
+				&& !this.credit.getCast().isEmpty()) {
+			builder.startObject("credits");
+			for (Cast cast : this.credit.getCast()) {
+				builder.field("cast_id", cast.getId());
+				builder.field("character", cast.getCharacter());
+				builder.field("person_name", cast.getName());
+			}
+			builder.endObject();
+		}
 		return builder;
 	}
 }
