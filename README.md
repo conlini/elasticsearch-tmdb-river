@@ -9,7 +9,7 @@ Getting Started
 
 The TMDB River uses the TMDB discover api to fetch metadata for movies or tv serials.
 
-The tmdb river requires a valid api key from TMDB in order to work. 
+The tmdb river requires a valid [api key](https://www.themoviedb.org/account) from TMDB in order to work. 
 
 
 Installation
