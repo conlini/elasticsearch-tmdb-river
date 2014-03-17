@@ -1,0 +1,40 @@
+Movie --
+{
+"adult":false,
+"originalTitle":"Twelve and Holding",
+"overview":"Three pre-adolescents with virginal and eager-of-signals naivety, hit headlong against monstrous and inhospitable loneliness, in the incandescent fire among the ashes of their own inocence.",
+"title":"Twelve and Holding",
+"rating":10.0,
+"popularity":0.749920400257935,
+"releaseDate":"2005-01-10T18:39:00.000Z",
+"genres":[
+	{"id":18,"name":"Drama"},
+	{"id":10756,"name":"Indie"}
+	],
+"keywords":["dying and death","zwilling"],
+"credits":[
+	{"cast_id":19858,"character":"Malee Chuang","person_name":"Zoe Weizenbaum"},
+	{"cast_id":82754,"character":"Jacob / Rudy Carges","person_name":"Conor Donovan"},
+	{"cast_id":82755,"character":"Leonard Fisher","person_name":"Jesse Camacho"},
+	{"cast_id":17604,"character":"Gus Maitland","person_name":"Jeremy Renner"},i
+	{"cast_id":18750,"character":"Carla Chuang","person_name":"Annabella Sciorra"}
+	]
+}
+
+====================================================================================
+TV --
+{
+"originalTitle":"Ljubav, navika, panika",
+"overview":"Ljubav, navika, panika is a Serbian television sitcom, originally broadcast from February 6, 2005 to April 1, 2007 on RTV Pink. This series is named one of the best television sictoms by Golden Rose of Montreux in 2005. This is one of the most popular Serbian television series in 2000s.\n\nThe lead roles were portrayed by some of the Serbian best comediographies, Seka Sablić, Nikola Simić and Zijah Sokolović; and young actresses Marija Karan and Mirka Vasiljević. Karan was replaced by Borka Tomović in 2006. Supporting and guest roles include Nada Macanković, Ljiljana Stjepanović, Gorica Popović, Vesna Trivalić, etc. The sitcom was shot in Belgrade.",
+"title":"Ljubav, navika, panika",
+"rating":10.0,
+"popularity":0.4,
+"number_of_seasons":3,
+"number_of_episodes":58,
+"releaseDate":"2005-01-05T18:32:00.000Z",
+"endDate":"2006-12-31T18:34:00.000Z",
+"genres":[
+	{"id":35,"name":"Comedy"}
+	],
+"series_name":"Ljubav, navika, panika"
+}

@@ -178,13 +178,15 @@ public class TV implements SourceProvider, CreditsOwner {
 		builder.field("series_name", this.originalTitle);
 		if (this.credit != null && this.credit.getCast() != null
 				&& !this.credit.getCast().isEmpty()) {
-			builder.startObject("credits");
+			builder.startArray("credits");
 			for (Cast cast : this.credit.getCast()) {
+				builder.startObject();
 				builder.field("cast_id", cast.getId());
 				builder.field("character", cast.getCharacter());
 				builder.field("person_name", cast.getName());
+				builder.endObject();
 			}
-			builder.endObject();
+			builder.endArray();
 		}
 		builder.endObject();
 		return builder;

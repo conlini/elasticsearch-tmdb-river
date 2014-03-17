@@ -177,20 +177,22 @@ public class Movie implements SourceProvider, CreditsOwner {
 		if (null != belongsToCollection) {
 			builder.field("series_name", belongsToCollection.getName());
 		}
-		builder.endObject();
 		if (this.keywords != null && !this.keywords.isEmpty()) {
 			builder.array("keywords", this.keywords.toArray());
 		}
 		if (this.credit != null && this.credit.getCast() != null
 				&& !this.credit.getCast().isEmpty()) {
-			builder.startObject("credits");
+			builder.startArray("credits");
 			for (Cast cast : this.credit.getCast()) {
+				builder.startObject();
 				builder.field("cast_id", cast.getId());
 				builder.field("character", cast.getCharacter());
 				builder.field("person_name", cast.getName());
+				builder.endObject();
 			}
-			builder.endObject();
+			builder.endArray();
 		}
+		builder.endObject();
 		return builder;
 	}
 }
