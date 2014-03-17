@@ -13,6 +13,21 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Movie implements SourceProvider, CreditsOwner {
 
+	public static class BelongsToCollection {
+
+		@JsonProperty("name")
+		private String name;
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+	}
+
 	@JsonProperty("adult")
 	private Boolean adult;
 
@@ -37,8 +52,8 @@ public class Movie implements SourceProvider, CreditsOwner {
 	@JsonProperty("vote_average")
 	private Double rating;
 
-	@JsonProperty("belongs_to_collection.name")
-	private String seriesName;
+	@JsonProperty("belongs_to_collection")
+	private BelongsToCollection belongsToCollection;
 
 	private List<String> keywords;
 
@@ -61,12 +76,12 @@ public class Movie implements SourceProvider, CreditsOwner {
 		this.keywords = keywords;
 	}
 
-	public String getSeriesName() {
-		return seriesName;
+	public BelongsToCollection getBelongsToCollection() {
+		return belongsToCollection;
 	}
 
-	public void setSeriesName(String seriesName) {
-		this.seriesName = seriesName;
+	public void setBelongsToCollection(BelongsToCollection belongsToCollection) {
+		this.belongsToCollection = belongsToCollection;
 	}
 
 	public Boolean getAdult() {
@@ -158,8 +173,8 @@ public class Movie implements SourceProvider, CreditsOwner {
 			builder.endArray();
 
 		}
-		if (null != seriesName) {
-			builder.field("series_name", seriesName);
+		if (null != belongsToCollection) {
+			builder.field("series_name", belongsToCollection.getName());
 		}
 		builder.endObject();
 		if (this.keywords != null && !this.keywords.isEmpty()) {

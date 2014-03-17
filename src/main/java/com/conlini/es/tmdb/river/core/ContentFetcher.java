@@ -46,9 +46,8 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 	private boolean can_stop = false;;
 
 	@SuppressWarnings("unchecked")
-	private void fetchContents(List<DiscoverResult> results) {
-
-		BulkRequestBuilder requestBuilder = client.prepareBulk();
+	private void fetchContents(List<DiscoverResult> results,
+			BulkRequestBuilder requestBuilder) {
 		logger.info(String.format("Fetching %s - %s",
 				discoveryType.contentPath, results));
 		for (DiscoverResult result : results) {
@@ -77,7 +76,6 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 				((Movie) sourceProvider).setKeywords(keyword.getKeyWords());
 
 			}
-
 			try {
 				logger.info("Adding to BulkAPI");
 				requestBuilder.add(client.prepareIndex(
@@ -92,17 +90,22 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 				logger.error("Error", e);
 			}
 		}
-		requestBuilder.execute().actionGet();
 	}
 
 	@Override
 	public void run() {
+		BulkRequestBuilder requestBuilder = client.prepareBulk();
 		while (running) {
 			try {
 				List<DiscoverResult> results = controlFlowManager
 						.getPageResultQueue().take();
-				fetchContents(results);
 
+				fetchContents(results, requestBuilder);
+				if (requestBuilder.numberOfActions() > 100000) {
+					logger.info("Bulk request threshold reached. Indexing data");
+					requestBuilder.get();
+					requestBuilder = client.prepareBulk();
+				}
 				// check that we are done with all pages
 				if (controlFlowManager.getPageResultQueue().isEmpty()
 						&& can_stop) {
@@ -113,6 +116,10 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 				logger.error("Failed to take next from queue", e);
 				running = false;
 			}
+		}
+		// done scrape/ Flush any documents that are queues for indexing
+		if (requestBuilder.numberOfActions() > 0) {
+			requestBuilder.get();
 		}
 		logger.info("Done scrapping all contents. Signalling complete phase");
 		controlFlowManager.notifyPhase(PHASE.CONTENT_SCRAPE,
