@@ -122,8 +122,8 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 				(null != apiKey && !apiKey.equals(""))));
 		logger.info(String.format("Discovery Type = %s", discoveryType));
 		logger.info("String max_pages - " + maxPages);
-		logger.info("mapping", mapping);
-		logger.info("bulk_api_threshold", bulkAPIThreshold);
+		logger.info("mapping ->" + mapping);
+		logger.info("bulk_api_threshold -->" + bulkAPIThreshold);
 	}
 
 	public RiverName riverName() {

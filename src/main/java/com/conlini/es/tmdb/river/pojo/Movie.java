@@ -13,6 +13,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Movie implements SourceProvider, CreditsOwner {
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	public static class BelongsToCollection {
 
 		@JsonProperty("name")

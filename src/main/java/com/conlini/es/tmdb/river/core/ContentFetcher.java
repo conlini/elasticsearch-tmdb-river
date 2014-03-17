@@ -53,33 +53,23 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 		logger.info(String.format("Fetching %s - %s",
 				discoveryType.contentPath, results));
 		for (DiscoverResult result : results) {
-			logger.info(String.format("Fetching %s with id %d",
-					discoveryType.contentPath, result.getId()));
 			SourceProvider sourceProvider = template.getForObject(fetchUrl,
 					discoveryType.sourceClass, discoveryType.getContentPath(),
 					result.getId().toString(), apiKey);
-			logger.info(String.format("Fetched %s with id %d",
-					discoveryType.contentPath, result.getId()));
 			Credits credits = template.getForObject(additionalDataFetchUrl,
 					Credits.class, discoveryType.getContentPath(), result
 							.getId().toString(), "credits", apiKey);
 
-			logger.info(String.format("Fetched credit for %s with id %d",
-					discoveryType.contentPath, result.getId()));
 			((CreditsOwner) sourceProvider).setCredit(credits);
 
 			if (discoveryType.equals(DISCOVERY_TYPE.MOVIE)) {
-				logger.info("Fetching keywords");
 				Keyword keyword = template.getForObject(additionalDataFetchUrl,
 						Keyword.class, discoveryType.getContentPath(), result
 								.getId().toString(), "keywords", apiKey);
-				System.out.println("ContentFetcher.fetchContents() --> "
-						+ keyword.getKeyWords());
 				((Movie) sourceProvider).setKeywords(keyword.getKeyWords());
 
 			}
 			try {
-				logger.info("Adding to BulkAPI");
 				requestBuilder.add(client.prepareIndex(
 						"tmdb",
 						discoveryType.getEsType(),
@@ -120,7 +110,11 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 			}
 		}
 		// done scrape/ Flush any documents that are queues for indexing
+
 		if (requestBuilder.numberOfActions() > 0) {
+			logger.info("Finished content scrape. Indexing "
+					+ requestBuilder.numberOfActions()
+					+ " pending actions in bulkRequest");
 			requestBuilder.get();
 		}
 		logger.info("Done scrapping all contents. Signalling complete phase");
