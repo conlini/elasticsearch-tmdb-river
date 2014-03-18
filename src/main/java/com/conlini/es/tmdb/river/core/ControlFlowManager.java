@@ -77,4 +77,8 @@ public class ControlFlowManager {
 			listener.onPhase(phase, stage);
 		}
 	}
+
+	public void close() {
+		executorService.shutdownNow();
+	}
 }

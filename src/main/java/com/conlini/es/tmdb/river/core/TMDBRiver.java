@@ -122,12 +122,13 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 		}
 		// print all the settings that have been extracted. Assert that we
 		// Received the api key. Don;t print it out for security reasons.
-		logger.info(String.format("Recieved apiKey -  %s",
+		logger.info(String.format("Recieved apiKey -->  %s",
 				(null != apiKey && !apiKey.equals(""))));
-		logger.info(String.format("Discovery Type = %s", discoveryType));
-		logger.info("String max_pages - " + maxPages);
-		logger.info("mapping ->" + mapping);
-		logger.info("bulk_api_threshold -->" + bulkAPIThreshold);
+		logger.info(String.format("Discovery Type --> %s", discoveryType));
+		logger.info("String max_pages --> " + maxPages);
+		logger.info("mapping --> " + mapping);
+		logger.info("bulk_api_threshold --> " + bulkAPIThreshold);
+		logger.info("Filters -- > " + filters);
 	}
 
 	public RiverName riverName() {
@@ -158,6 +159,7 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 			if (filters != null && !filters.isEmpty()) {
 				fetchUrl = APIUtil.addFilters(fetchUrl, filters);
 			}
+			logger.info("Fetch URL for discovery --> " + fetchUrl);
 			// Hit the first request. We can then get the total pages to be
 			// fetched. Do this only if the maxPages is not provided.
 			if (null == maxPages) {
@@ -182,6 +184,8 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 	}
 
 	public void close() {
+		logger.info("close called");
+		controlFlowManager.close();
 	}
 
 	public Client getClient() {

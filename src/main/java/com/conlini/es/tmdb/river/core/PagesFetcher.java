@@ -36,7 +36,7 @@ public class PagesFetcher implements Runnable {
 
 	@Override
 	public void run() {
-		for (int i = 1; i <= totalPages; i++) {
+		loop: for (int i = 1; i <= totalPages; i++) {
 			logger.info("Fetching page no - " + i);
 			DiscoverResponse response = template.getForObject(fetchUrl,
 					DiscoverResponse.class,
@@ -46,11 +46,13 @@ public class PagesFetcher implements Runnable {
 						response.getResults(), 1, TimeUnit.SECONDS);
 			} catch (InterruptedException e) {
 				logger.error("Failed to offer results to the queue", e);
+				break loop;
 			}
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				logger.error("Error", e);
+				break loop;
 			}
 		}
 		logger.info("Done fetching all pages. Signalling end of phase");
