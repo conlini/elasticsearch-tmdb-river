@@ -79,6 +79,7 @@ public class ControlFlowManager {
 	}
 
 	public void close() {
+		this.liseners.clear();
 		executorService.shutdownNow();
 	}
 }

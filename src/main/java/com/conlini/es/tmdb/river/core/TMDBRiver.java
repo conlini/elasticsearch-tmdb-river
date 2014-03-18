@@ -82,6 +82,12 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 
 	private Map<String, String> filters;
 
+	private int upperYearBound = -1;
+
+	private int lowerYearBound = -1;
+
+	private boolean canTerminate = true;
+
 	@Inject
 	protected TMDBRiver(RiverName riverName, RiverSettings settings,
 			Client client) {
@@ -120,6 +126,11 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 		if (settingMap.containsKey("filters")) {
 			this.filters = (Map<String, String>) settingMap.get("filters");
 		}
+		if (settingMap.containsKey("year_range")) {
+			String[] range = ((String) settingMap.get("year_range")).split("~");
+			this.lowerYearBound = Integer.parseInt(range[0]);
+			this.upperYearBound = Integer.parseInt(range[1]);
+		}
 		// print all the settings that have been extracted. Assert that we
 		// Received the api key. Don;t print it out for security reasons.
 		logger.info(String.format("Recieved apiKey -->  %s",
@@ -129,6 +140,8 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 		logger.info("mapping --> " + mapping);
 		logger.info("bulk_api_threshold --> " + bulkAPIThreshold);
 		logger.info("Filters -- > " + filters);
+		logger.info("Lower/Upper year bounds --> " + this.lowerYearBound + "/"
+				+ this.upperYearBound);
 	}
 
 	public RiverName riverName() {
@@ -154,31 +167,60 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 						.actionGet();
 			}
 			RestTemplate template = APIUtil.initTemplate();
-			String fetchUrl = Constants.basePath + discoveryType.getPath()
-					+ "?api_key={api_key}&page={page_no}";
-			if (filters != null && !filters.isEmpty()) {
-				fetchUrl = APIUtil.addFilters(fetchUrl, filters);
+			if (this.lowerYearBound != -1 && this.upperYearBound != -1) {
+				this.canTerminate = false;
+				addYearRange();
 			}
-			logger.info("Fetch URL for discovery --> " + fetchUrl);
-			// Hit the first request. We can then get the total pages to be
-			// fetched. Do this only if the maxPages is not provided.
-			if (null == maxPages) {
+			String fetchUrl = buildFetchURL();
 
-				DiscoverResponse response = template.getForObject(fetchUrl,
-						DiscoverResponse.class,
-						APIUtil.getVariableVals(apiKey, "1"));
-				// Start 1 thread to get the remaining pages. add to a queue
-				// start a thread that gets the Content
-				logger.info(String.format(
-						"Received response for %d content. Fetching %d pages ",
-						response.getTotalResults(), response.getTotalPages()));
-				maxPages = response.getTotalPages();
-			}
 			controlFlowManager.startContentScrape(apiKey, discoveryType,
 					client, bulkAPIThreshold);
+
+			computeMaxPage(template, fetchUrl);
+
 			this.controlFlowManager.startPageScrape(apiKey, fetchUrl, maxPages);
 		} else {
 			logger.error("No API Key found. Nothing being pulled");
+		}
+
+	}
+
+	private String buildFetchURL() {
+		String fetchUrl = Constants.basePath + discoveryType.getPath()
+				+ "?api_key={api_key}&page={page_no}";
+
+		if (filters != null && !filters.isEmpty()) {
+			fetchUrl = APIUtil.addFilters(fetchUrl, filters);
+		}
+		logger.info("Fetch URL for discovery --> " + fetchUrl);
+		return fetchUrl;
+	}
+
+	private void computeMaxPage(RestTemplate template, String fetchUrl) {
+		DiscoverResponse response = template.getForObject(fetchUrl,
+				DiscoverResponse.class, APIUtil.getVariableVals(apiKey, "1"));
+		logger.info(String.format(
+				"Received response for %d content. Fetching %d pages ",
+				response.getTotalResults(), response.getTotalPages()));
+		maxPages = this.maxPages == null ? response.getTotalPages()
+				: (this.maxPages < response.getTotalPages() ? this.maxPages
+						: response.getTotalPages());
+		logger.info("Max page computed --> " + maxPages);
+	}
+
+	private void addYearRange() {
+		if (this.filters == null) {
+			this.filters = new HashMap<String, String>();
+		}
+		String lte = this.lowerYearBound + "-12-31";
+		String gte = this.lowerYearBound + "-01-01";
+		this.lowerYearBound++;
+		if (discoveryType.equals(DISCOVERY_TYPE.MOVIE)) {
+			filters.put("release_date.lte", lte);
+			filters.put("release_date.gte", gte);
+		} else if (discoveryType.equals(DISCOVERY_TYPE.TV)) {
+			filters.put("first_air_date.lte", lte);
+			filters.put("first_air_date.gte", gte);
 		}
 
 	}
@@ -199,12 +241,25 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 	@Override
 	public void onPhase(PHASE phase, PHASE_STAGE stage) {
 		if (phase.equals(PHASE.CONTENT_SCRAPE)
-				&& stage.equals(PHASE_STAGE.COMPLETE)) {
+				&& stage.equals(PHASE_STAGE.COMPLETE) && canTerminate) {
 			logger.debug("Done scrapping. Deleting mapping");
 			// delete the mapping. We are done with the scrape
 			client.admin().indices().prepareDeleteMapping("_river")
 					.setType(riverName.name()).execute();
 
+		} else if (phase.equals(PHASE.PAGE_SCRAPE)
+				&& stage.equals(PHASE_STAGE.COMPLETE)) {
+			if (lowerYearBound > upperYearBound) {
+				canTerminate = true;
+				logger.info("Fetched complete year range. Can terminate");
+			} else {
+
+				addYearRange();
+				String fetchUrl = buildFetchURL();
+				computeMaxPage(APIUtil.initTemplate(), fetchUrl);
+				this.controlFlowManager.startPageScrape(apiKey, fetchUrl,
+						maxPages);
+			}
 		}
 	}
 
