@@ -39,9 +39,9 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 	private Integer bulkAPIThreshold = 100000;
 
 	public static enum DISCOVERY_TYPE {
-		MOVIE("/discover/movie", "movie", "contents", Movie.class), TV(
-				"/discover/tv", "tv", "contents", TV.class), ALL(null, null,
-				null, null);
+		MOVIE("/discover/movie", "movie", Constants.TYPE, Movie.class), TV(
+				"/discover/tv", "tv", Constants.TYPE, TV.class), ALL(null,
+				null, null, null);
 
 		public final String path;
 
@@ -80,6 +80,8 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 	private BlockingQueue<List<DiscoverResult>> queues = new ArrayBlockingQueue<List<DiscoverResult>>(
 			1);
 
+	private Map<String, String> filters;
+
 	@Inject
 	protected TMDBRiver(RiverName riverName, RiverSettings settings,
 			Client client) {
@@ -88,33 +90,35 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 		this.controlFlowManager.registerPhaseStageListener(
 				PHASE.CONTENT_SCRAPE, PHASE_STAGE.COMPLETE, this);
 		this.client = client;
-		if (settings.settings().containsKey("api_key")) {
-			this.apiKey = (String) settings.settings().get("api_key");
+		Map<String, Object> settingMap = settings.settings();
+		if (settingMap.containsKey("api_key")) {
+			this.apiKey = (String) settingMap.get("api_key");
 		}
 
-		if (settings.settings().containsKey("discovery_type")) {
-			String discovery_type = (String) settings.settings().get(
-					"discovery_type");
+		if (settingMap.containsKey("discovery_type")) {
+			String discovery_type = (String) settingMap.get("discovery_type");
 			if (discovery_type.equals("tv")) {
 				discoveryType = DISCOVERY_TYPE.TV;
 			} else if (discovery_type.equals("movie")) {
 				discoveryType = DISCOVERY_TYPE.MOVIE;
 			}
 		}
-		if (settings.settings().containsKey("max_pages")) {
-			maxPages = (Integer) settings.settings().get("max_pages");
+		if (settingMap.containsKey("max_pages")) {
+			maxPages = (Integer) settingMap.get("max_pages");
 		}
 
-		if (settings.settings().containsKey("content_mapping")) {
+		if (settingMap.containsKey("content_mapping")) {
 			logger.info("Found user defined mapping");
-			Map<String, Object> map = (Map<String, Object>) settings.settings()
+			Map<String, Object> map = (Map<String, Object>) settingMap
 					.get("content_mapping");
 			this.mapping = new HashMap<String, Object>();
-			this.mapping.put("content", map);
+			this.mapping.put(Constants.TYPE, map);
 		}
-		if (settings.settings().containsKey("bulk_api_threshold")) {
-			bulkAPIThreshold = (Integer) settings.settings().get(
-					"bulk_api_threshold");
+		if (settingMap.containsKey("bulk_api_threshold")) {
+			bulkAPIThreshold = (Integer) settingMap.get("bulk_api_threshold");
+		}
+		if (settingMap.containsKey("filters")) {
+			this.filters = (Map<String, String>) settingMap.get("filters");
 		}
 		// print all the settings that have been extracted. Assert that we
 		// Received the api key. Don;t print it out for security reasons.
@@ -136,22 +140,28 @@ public class TMDBRiver extends AbstractRiverComponent implements River,
 		// proceeding if that is not there
 		if (null != apiKey && !apiKey.equals("")) {
 			// intitalize the index
-			if (!client.admin().indices().prepareExists("tmdb").get()
-					.isExists()) {
-				client.admin().indices().prepareCreate("tmdb").get();
+			if (!client.admin().indices().prepareExists(Constants.INDEX_NAME)
+					.get().isExists()) {
+				client.admin().indices().prepareCreate(Constants.INDEX_NAME)
+						.get();
 			}
 			// if a user defined mapping has been sent, update the mapping
 			if (this.mapping != null) {
-				client.admin().indices().preparePutMapping("tmdb")
-						.setType("content").setSource(mapping).execute()
+				client.admin().indices()
+						.preparePutMapping(Constants.INDEX_NAME)
+						.setType(Constants.TYPE).setSource(mapping).execute()
 						.actionGet();
 			}
 			RestTemplate template = APIUtil.initTemplate();
 			String fetchUrl = Constants.basePath + discoveryType.getPath()
 					+ "?api_key={api_key}&page={page_no}";
+			if (filters != null && !filters.isEmpty()) {
+				fetchUrl = APIUtil.addFilters(fetchUrl, filters);
+			}
 			// Hit the first request. We can then get the total pages to be
 			// fetched. Do this only if the maxPages is not provided.
 			if (null == maxPages) {
+
 				DiscoverResponse response = template.getForObject(fetchUrl,
 						DiscoverResponse.class,
 						APIUtil.getVariableVals(apiKey, "1"));

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -30,5 +31,14 @@ public class APIUtil {
 		convertors.add(converter);
 		template.setMessageConverters(convertors);
 		return template;
+	}
+
+	public static String addFilters(String fetchUrl, Map<String, String> filters) {
+		StringBuilder builder = new StringBuilder(fetchUrl);
+		for (Entry<String, String> entry : filters.entrySet()) {
+			builder.append("&").append(entry.getKey()).append("=")
+					.append(entry.getValue());
+		}
+		return builder.toString();
 	}
 }

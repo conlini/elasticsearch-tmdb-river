@@ -71,8 +71,8 @@ public class ContentFetcher implements Runnable, PhaseStageListener {
 			}
 			try {
 				requestBuilder.add(client.prepareIndex(
-						"tmdb",
-						discoveryType.getEsType(),
+						Constants.INDEX_NAME,
+						Constants.TYPE,
 						discoveryType.getContentPath().toLowerCase() + "_"
 								+ result.getId().toString()).setSource(
 						sourceProvider.source()));
